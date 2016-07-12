@@ -51,24 +51,33 @@ def create_mode(infile, config_paths, config_blacklist):
     logger.debug("running create mode")
     path = os.path.dirname(os.path.realpath(infile))
     infile_name = ntpath.basename(infile)
-    dlls = search_for_used_dlls(infile_name, path, [])
+    dlls = search_for_used_dlls(infile_name, path, [], config_blacklist)
 
     logger.debug("all dlls found:" + str(dlls))
     return
 
 
-def search_for_used_dlls(infile, path, dll_list):
+def search_for_used_dlls(infile, path, dll_list, blacklist):
     import re
     dll_regexp = re.compile(b'\.dll')
-    ifile = open(path + "/" + infile, 'rb', buffering=0)
+    logger.debug("analyzing: "+path + "/" + infile)
+    # ifile = open(path + "/" + infile, 'rb', buffering=0)
+    ifile = open(path + "/" + infile, 'rb')
     for line in ifile:
         iterator = dll_regexp.finditer(line)
         for match in iterator:
-            pos = match.start()
-            while pos > 0 and line[pos-1:pos] != b"\x00":
+            pos = match.start()-1 # -1 because of the dot
+            while pos > 0 and (line[pos-1:pos].isalnum() or line[pos-1:pos] == b"_" or line[pos-1:pos] == b"-"):
                 pos = pos - 1
-            dll_list.append(line[pos:match.end()].decode())
+            if pos == match.start()-1: # check if position has changed
+                continue
 
+            dllname = line[pos:match.end()].decode()
+            if dllname not in blacklist and dllname not in dll_list:
+                dll_list.append(dllname)
+                dll_list = search_for_used_dlls(dllname, path, dll_list, blacklist)
+
+    ifile.close()
     logger.debug(infile + " uses dlls:" + str(dll_list))
 
     return dll_list
@@ -112,10 +121,10 @@ if __name__ == "__main__":
         logger.setLevel(logging.DEBUG)
 
     if not os.path.isfile(args.infile):
-        logger.error("input file does not exist")
+        logger.error("input file does not exist:" + args.infile)
         exit()
     if not os.path.isfile(args.configfile):
-        logger.error("config file does not exist")
+        logger.error("config file does not exist" + args.configfile)
         exit()
 
     (config_create, config_paths, config_blacklist) = parse_config_file(args.configfile, args.configuration)
