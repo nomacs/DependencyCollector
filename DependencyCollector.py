@@ -99,9 +99,9 @@ def search_for_used_dlls(infile, path, dll_list, conf):
                 continue
 
             dllname = line[pos:match.end()].decode()
-            
-            if dllname.lower() not in conf['blacklist'] and
-            dllname.lower() not in dll_list:
+
+            if not dllname.lower() in conf['blacklist'] \
+                    and not dllname.lower() in dll_list:
                 (dllpath, mod_date) = \
                     search_for_newest_file(dllname, conf['paths'])
                 if dllpath == "":
@@ -109,8 +109,8 @@ def search_for_used_dlls(infile, path, dll_list, conf):
                 else:
                     copy_dll(dllpath, path)
                     dll_list.append(dllname.lower())
-                    dll_list =
-                    search_for_used_dlls(dllname, path, dll_list, conf)
+                    dll_list = \
+                        search_for_used_dlls(dllname, path, dll_list, conf)
 
     ifile.close()
     logger.debug(infile + " uses dlls:" + str(dll_list))
@@ -137,8 +137,9 @@ def search_for_newest_file(file, paths):
     newest_file = ""
     mod_date = ""
     for p in paths:
-        if os.path.isfile(p + "/" + file) and
-        (mod_date == "" or os.path.getmtime(p + "/" + file) > mod_date):
+        if os.path.isfile(p + "/" + file) and \
+                (mod_date == "" or
+                 os.path.getmtime(p + "/" + file) > mod_date):
             mod_date = os.path.getmtime(p + "/" + file)
             newest_file = p + "/" + file
             logger.debug("newer dll found in " + p + " for " + file +
