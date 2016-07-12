@@ -23,7 +23,10 @@ def parse_config_file(configfile, configuration):
     if config.has_option('DependencyCollector','BLACKLIST'):
         blacklist = config['DependencyCollector']['BLACKLIST']
         blacklist = blacklist.split(';')
-    conf={'create':create,'paths':paths, 'blacklist':blacklist}
+    blacklist_lower = []
+    for b in blacklist:
+        blacklist_lower.append(b.lower())
+    conf={'create':create,'paths':paths, 'blacklist':blacklist_lower}
     return conf
 
 def update_mode(infile, conf):
@@ -73,11 +76,14 @@ def search_for_used_dlls(infile, path, dll_list, conf):
                 continue
 
             dllname = line[pos:match.end()].decode()
-            if dllname not in conf['blacklist'] and dllname not in dll_list:
+            if dllname.lower() not in conf['blacklist'] and dllname.lower() not in dll_list:
                 (dllpath,mod_date) = search_for_newest_file(dllname, conf['paths'])
-                copy_dll(dllpath, path)
-                dll_list.append(dllname)
-                dll_list = search_for_used_dlls(dllname, path, dll_list, conf)
+                if dllpath == "":
+                    logger.warning(dllname + " not found")
+                else:
+                    copy_dll(dllpath, path)
+                    dll_list.append(dllname.lower())
+                    dll_list = search_for_used_dlls(dllname, path, dll_list, conf)
 
     ifile.close()
     logger.debug(infile + " uses dlls:" + str(dll_list))
