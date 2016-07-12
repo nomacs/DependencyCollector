@@ -2,7 +2,7 @@
 
 OUTPUT_NAME = "DependencyCollector"
 import logging
-logging.basicConfig(level=logging.WARNING, format=OUTPUT_NAME + ' %(asctime)s - %(levelname)s - %(message)s')
+logging.basicConfig(level=logging.INFO, format=OUTPUT_NAME + ' %(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger()
 
 
@@ -19,6 +19,10 @@ def parse_config_file(configfile, configuration):
     create = config.getboolean('DependencyCollector','CREATE_'+configuration)
     paths_string = config['DependencyCollector']['PATHS_'+mapping.upper()]
     paths = paths_string.split(';')
+    for p in paths:
+        #TODO magic for configuration
+        if not os.path.isdir(p):
+            logger.warning("paths in config file: "+ p + " does not exist")
     blacklist = [];
     if config.has_option('DependencyCollector','BLACKLIST'):
         blacklist = config['DependencyCollector']['BLACKLIST']
@@ -41,10 +45,10 @@ def update_mode(infile, conf):
     for dll in existing_dlls:
         dll_name = ntpath.basename(dll)
         logger.debug("searching for a newer version of " + dll)
-        if dll_name not in conf['blacklist']:
+        if dll_name.lower() not in conf['blacklist']:
             (newest_dll, mod_date) = search_for_newest_file(dll_name, conf['paths'])
-            if mod_date < os.path.getmtime(dll):
-                print("COPY FILE HERE!!")
+            if newest_dll != "" and mod_date > os.path.getmtime(dll):
+                copy_dll(newest_dll, dir)
         else:
             logger.debug(dll + " skipped because of blacklist")
     return
@@ -93,8 +97,12 @@ def search_for_used_dlls(infile, path, dll_list, conf):
 def copy_dll(dllpath, targetpath):
     import shutil
     logger.info("copying " + dllpath + " to " + targetpath)
-    shutil.copy(dllpath, targetpath)
-
+    try:
+        shutil.copy(dllpath, targetpath)
+    except OSError as error:
+        logger.error("unable to copy " + dllpath + " to " + targetpath + "(" + str(error) + ")")
+    except:
+        logger.error("unable to copy " + dllpath + " to " + targetpath)
     return
 
 def search_for_newest_file(file, paths):
@@ -103,7 +111,7 @@ def search_for_newest_file(file, paths):
     newest_file = ""
     mod_date = ""
     for p in paths:
-        if os.path.isfile(p + "/" + file) and (mod_date == "" or os.path.getmtime(p + "/" + file) < mod_date):
+        if os.path.isfile(p + "/" + file) and (mod_date == "" or os.path.getmtime(p + "/" + file) > mod_date):
             mod_date = os.path.getmtime(p+ "/" + file)
             newest_file = p+ "/" + file
             logger.debug("newer dll found in " + p + " for " + file + " (date:" + time.ctime(mod_date) + ")")
