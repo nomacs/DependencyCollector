@@ -61,13 +61,12 @@ def search_for_used_dlls(infile, path, dll_list, blacklist):
     import re
     dll_regexp = re.compile(b'\.dll')
     logger.debug("analyzing: "+path + "/" + infile)
-    # ifile = open(path + "/" + infile, 'rb', buffering=0)
     ifile = open(path + "/" + infile, 'rb')
     for line in ifile:
         iterator = dll_regexp.finditer(line)
         for match in iterator:
             pos = match.start()-1 # -1 because of the dot
-            while pos > 0 and (line[pos-1:pos].isalnum() or line[pos-1:pos] == b"_" or line[pos-1:pos] == b"-"):
+            while pos > 0 and (line[pos - 1:pos].isalnum() or line[pos - 1:pos] == b"_" or line[pos - 1:pos] == b"-"):
                 pos = pos - 1
             if pos == match.start()-1: # check if position has changed
                 continue
