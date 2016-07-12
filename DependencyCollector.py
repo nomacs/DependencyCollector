@@ -19,13 +19,14 @@ def parse_config_file(configfile, configuration):
     create = config.getboolean('DependencyCollector','CREATE_'+configuration)
     paths_string = config['DependencyCollector']['PATHS_'+mapping.upper()]
     paths = paths_string.split(';')
-    blacklist = "";
+    blacklist = [];
     if config.has_option('DependencyCollector','BLACKLIST'):
         blacklist = config['DependencyCollector']['BLACKLIST']
         blacklist = blacklist.split(';')
-    return(create,paths,blacklist)
+    conf={'create':create,'paths':paths, 'blacklist':blacklist}
+    return conf
 
-def update_mode(infile, config_paths, config_blacklist):
+def update_mode(infile, conf):
     import glob
     import ntpath
 
@@ -37,27 +38,27 @@ def update_mode(infile, config_paths, config_blacklist):
     for dll in existing_dlls:
         dll_name = ntpath.basename(dll)
         logger.debug("searching for a newer version of " + dll)
-        if dll_name not in config_blacklist:
-            (newest_dll, mod_date) = search_for_newest_file(dll_name, config_paths)
+        if dll_name not in conf['blacklist']:
+            (newest_dll, mod_date) = search_for_newest_file(dll_name, conf['paths'])
             if mod_date < os.path.getmtime(dll):
                 print("COPY FILE HERE!!")
         else:
             logger.debug(dll + " skipped because of blacklist")
     return
 
-def create_mode(infile, config_paths, config_blacklist):
+def create_mode(infile, conf):
     import ntpath
 
     logger.debug("running create mode")
     path = os.path.dirname(os.path.realpath(infile))
     infile_name = ntpath.basename(infile)
-    dlls = search_for_used_dlls(infile_name, path, [], config_blacklist)
+    dlls = search_for_used_dlls(infile_name, path, [], conf)
 
     logger.debug("all dlls found:" + str(dlls))
     return
 
 
-def search_for_used_dlls(infile, path, dll_list, blacklist):
+def search_for_used_dlls(infile, path, dll_list, conf):
     import re
     dll_regexp = re.compile(b'\.dll')
     logger.debug("analyzing: "+path + "/" + infile)
@@ -72,10 +73,11 @@ def search_for_used_dlls(infile, path, dll_list, blacklist):
                 continue
 
             dllname = line[pos:match.end()].decode()
-            if dllname not in blacklist and dllname not in dll_list:
-                
+            if dllname not in conf['blacklist'] and dllname not in dll_list:
+                (dllpath,mod_date) = search_for_newest_file(dllname, conf['paths'])
+                copy_dll(dllpath, path)
                 dll_list.append(dllname)
-                dll_list = search_for_used_dlls(dllname, path, dll_list, blacklist)
+                dll_list = search_for_used_dlls(dllname, path, dll_list, conf)
 
     ifile.close()
     logger.debug(infile + " uses dlls:" + str(dll_list))
@@ -84,7 +86,8 @@ def search_for_used_dlls(infile, path, dll_list, blacklist):
 
 def copy_dll(dllpath, targetpath):
     import shutil
-    shutil.copyfile(dllpath, targetpath)
+    logger.info("copying " + dllpath + " to " + targetpath)
+    shutil.copy(dllpath, targetpath)
 
     return
 
@@ -97,7 +100,7 @@ def search_for_newest_file(file, paths):
         if os.path.isfile(p + "/" + file) and (mod_date == "" or os.path.getmtime(p + "/" + file) < mod_date):
             mod_date = os.path.getmtime(p+ "/" + file)
             newest_file = p+ "/" + file
-            logger.debug("newer dll found in " + p + "for " + file + " (date:" + time.ctime(mod_date) + ")")
+            logger.debug("newer dll found in " + p + " for " + file + " (date:" + time.ctime(mod_date) + ")")
 
     if newest_file == "":
         logger.warning("no dll found for " + file)
@@ -133,16 +136,16 @@ if __name__ == "__main__":
         logger.error("config file does not exist" + args.configfile)
         exit()
 
-    (config_create, config_paths, config_blacklist) = parse_config_file(args.configfile, args.configuration)
+    conf = parse_config_file(args.configfile, args.configuration)
 
-    logger.debug("running create mode:" + str(config_create))
-    logger.debug("using paths:" + str(config_paths))
-    logger.debug("using blacklist:" + str(config_blacklist))
+    logger.debug("running create mode:" + str(conf['create']))
+    logger.debug("using paths:" + str(conf['paths']))
+    logger.debug("using blacklist:" + str(conf['blacklist']))
 
-    if config_create == True:
-        create_mode(args.infile, config_paths, config_blacklist)
-    elif config_create == False:
-        update_mode(args.infile, config_paths, config_blacklist)
+    if conf['create'] == True:
+        create_mode(args.infile, conf)
+    elif conf['create'] == False:
+        update_mode(args.infile, conf)
     else:
         logger.error("create mode unkown")
         exit()
