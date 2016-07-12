@@ -34,7 +34,6 @@ def parse_config_file(configfile, conftype):
     paths_string = config['DependencyCollector']['PATHS_'+mapping.upper()]
     paths = paths_string.split(';')
     for p in paths:
-        # TODO magic for configuration
         if not os.path.isdir(p):
             logger.warning("paths in config file: " + p + " does not exist")
     blacklist = []
@@ -54,7 +53,7 @@ def update_mode(infile, conf):
 
     logger.debug("running update mode")
     dir = os.path.dirname(os.path.realpath(infile))
-    existing_dlls = glob.glob(dir+"/*.ini")
+    existing_dlls = glob.glob(dir+"/*.dll")
 
     logger.debug("dll found in directory:" + str(existing_dlls))
     for dll in existing_dlls:
@@ -85,17 +84,17 @@ def create_mode(infile, conf):
 def search_for_used_dlls(infile, path, dll_list, conf):
     import re
     dll_regexp = re.compile(b'\.dll')
-    logger.debug("analyzing: "+path + "/" + infile)
-    ifile = open(path + "/" + infile, 'rb')
+    logger.debug("analyzing: "+os.path.join(path,infile))
+    ifile = open(os.path.join(path,infile), 'rb')
     for line in ifile:
         iterator = dll_regexp.finditer(line)
         for match in iterator:
-            pos = match.start()-1  # -1 because of the dot
+            pos = match.start()
             while pos > 0 and (line[pos - 1:pos].isalnum() or
                                line[pos - 1:pos] == b"_" or
                                line[pos - 1:pos] == b"-"):
                 pos = pos - 1
-            if pos == match.start()-1:  # check if position has changed
+            if pos == match.start():  # check if position has changed
                 continue
 
             dllname = line[pos:match.end()].decode()
@@ -107,7 +106,8 @@ def search_for_used_dlls(infile, path, dll_list, conf):
                 if dllpath == "":
                     logger.warning(dllname + " not found")
                 else:
-                    copy_dll(dllpath, path)
+                    if os.path.dirname(dllpath) != conf['localpath']:
+                        copy_dll(dllpath, path)
                     dll_list.append(dllname.lower())
                     dll_list = \
                         search_for_used_dlls(dllname, path, dll_list, conf)
@@ -137,11 +137,12 @@ def search_for_newest_file(file, paths):
     newest_file = ""
     mod_date = ""
     for p in paths:
-        if os.path.isfile(p + "/" + file) and \
+        fullpath = os.path.join(p, file)
+        if os.path.isfile(fullpath) and \
                 (mod_date == "" or
-                 os.path.getmtime(p + "/" + file) > mod_date):
-            mod_date = os.path.getmtime(p + "/" + file)
-            newest_file = p + "/" + file
+                 os.path.getmtime(fullpath) > mod_date):
+            mod_date = os.path.getmtime(fullpath)
+            newest_file = fullpath
             logger.debug("newer dll found in " + p + " for " + file +
                          " (date:" + time.ctime(mod_date) + ")")
 
@@ -183,7 +184,10 @@ if __name__ == "__main__":
         logger.error("config file does not exist" + args.configfile)
         exit()
 
+    logger.info("called with file:" + args.infile + " and configuration " + args.configuration)
     conf = parse_config_file(args.configfile, args.configuration)
+    conf['localpath'] = os.path.dirname(os.path.realpath(args.infile))
+    conf['paths'].append(os.path.dirname(os.path.realpath(args.infile))) # adding local path
 
     logger.debug("running create mode:" + str(conf['create']))
     logger.debug("using paths:" + str(conf['paths']))
@@ -196,3 +200,5 @@ if __name__ == "__main__":
     else:
         logger.error("create mode unkown")
         exit()
+
+    logger.info("finished")
