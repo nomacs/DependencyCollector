@@ -73,6 +73,7 @@ def search_for_used_dlls(infile, path, dll_list, blacklist):
 
             dllname = line[pos:match.end()].decode()
             if dllname not in blacklist and dllname not in dll_list:
+                
                 dll_list.append(dllname)
                 dll_list = search_for_used_dlls(dllname, path, dll_list, blacklist)
 
@@ -80,6 +81,12 @@ def search_for_used_dlls(infile, path, dll_list, blacklist):
     logger.debug(infile + " uses dlls:" + str(dll_list))
 
     return dll_list
+
+def copy_dll(dllpath, targetpath):
+    import shutil
+    shutil.copyfile(dllpath, targetpath)
+
+    return
 
 def search_for_newest_file(file, paths):
     import time
