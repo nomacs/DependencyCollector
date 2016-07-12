@@ -1,8 +1,10 @@
 #!/usr/local/bin/python
 
 OUTPUT_NAME = "DependencyCollector"
-ERROR_MSG = OUTPUT_NAME + ": ERROR: "
-WARNING_MSG = OUTPUT_NAME + ": WARNING: "
+import logging
+logging.basicConfig(level=logging.WARNING, format=OUTPUT_NAME + ' %(asctime)s - %(levelname)s - %(message)s')
+logger = logging.getLogger()
+
 
 def parse_config_file(configfile, configuration):
     import configparser
@@ -11,7 +13,7 @@ def parse_config_file(configfile, configuration):
     config.read(configfile)
     mapping = config['DependencyCollector']['MAPPING_'+configuration]
     if not (mapping.lower() == "debug" or mapping.lower() == "release"):
-        print(ERROR_MSG + " mapping of configuration not found or incorrect in config file")
+        logger.error("mapping of configuration not found or incorrect in config file")
         exit()
 
     create = config.getboolean('DependencyCollector','CREATE_'+configuration)
@@ -27,34 +29,63 @@ def update_mode(infile, config_paths, config_blacklist):
     import glob
     import ntpath
 
-    print("update mode")
+    logger.debug("running update mode")
     dir = os.path.dirname(os.path.realpath(infile))
     existing_dlls = glob.glob(dir+"/*.ini")
 
-    print("existing dlls:" + str(existing_dlls))
+    logger.debug("dll found in directory:" + str(existing_dlls))
     for dll in existing_dlls:
         dll_name = ntpath.basename(dll)
+        logger.debug("searching for a newer version of " + dll)
         if dll_name not in config_blacklist:
             (newest_dll, mod_date) = search_for_newest_file(dll_name, config_paths)
             if mod_date < os.path.getmtime(dll):
                 print("COPY FILE HERE!!")
+        else:
+            logger.debug(dll + " skipped because of blacklist")
     return
 
 def create_mode(infile, config_paths, config_blacklist):
-    print("create mode")
+    import ntpath
+
+    logger.debug("running create mode")
+    path = os.path.dirname(os.path.realpath(infile))
+    infile_name = ntpath.basename(infile)
+    dlls = search_for_used_dlls(infile_name, path, [])
+
+    logger.debug("all dlls found:" + str(dlls))
     return
 
+
+def search_for_used_dlls(infile, path, dll_list):
+    import re
+    dll_regexp = re.compile(b'\.dll')
+    ifile = open(path + "/" + infile, 'rb', buffering=0)
+    for line in ifile:
+        iterator = dll_regexp.finditer(line)
+        for match in iterator:
+            pos = match.start()
+            while pos > 0 and line[pos-1:pos] != b"\x00":
+                pos = pos - 1
+            dll_list.append(line[pos:match.end()].decode())
+
+    logger.debug(infile + " uses dlls:" + str(dll_list))
+
+    return dll_list
+
 def search_for_newest_file(file, paths):
+    import time
+
     newest_file = ""
     mod_date = ""
     for p in paths:
-        print(p + "/" + file)
-        if os.path.isfile(p+ "/" + file):
-            if mod_date == "" or os.path.getmtime(p+ "/" + file) < mod_date:
-                mod_date = os.path.getmtime(p+ "/" + file)
-                newest_file = p+ "/" + file
+        if os.path.isfile(p + "/" + file) and (mod_date == "" or os.path.getmtime(p + "/" + file) < mod_date):
+            mod_date = os.path.getmtime(p+ "/" + file)
+            newest_file = p+ "/" + file
+            logger.debug("newer dll found in " + p + "for " + file + " (date:" + time.ctime(mod_date) + ")")
+
     if newest_file == "":
-        print(WARNING_MSG + ": no dll found for " + file)
+        logger.warning("no dll found for " + file)
 
     return(newest_file, mod_date)
 
@@ -72,23 +103,31 @@ if __name__ == "__main__":
                         help ="""configuration file of the dependencycollector""", required=True)
     parser.add_argument('--configuration', default='', metavar='configuration',
                         help = """current build configuration (Release|Debug|...)""", required=True)
+    parser.add_argument('--debug', action="store_true",
+                        help="""enable debug messages""")
 
     args = parser.parse_args()
 
+    if args.debug:
+        logger.setLevel(logging.DEBUG)
+
     if not os.path.isfile(args.infile):
-        print(ERROR_MSG + "input file does not exist")
+        logger.error("input file does not exist")
         exit()
     if not os.path.isfile(args.configfile):
-        print(ERROR_MSG + "config file does not exist")
+        logger.error("config file does not exist")
         exit()
 
     (config_create, config_paths, config_blacklist) = parse_config_file(args.configfile, args.configuration)
 
-    print("config_create:" + str(config_create))
+    logger.debug("running create mode:" + str(config_create))
+    logger.debug("using paths:" + str(config_paths))
+    logger.debug("using blacklist:" + str(config_blacklist))
+
     if config_create == True:
         create_mode(args.infile, config_paths, config_blacklist)
     elif config_create == False:
         update_mode(args.infile, config_paths, config_blacklist)
     else:
-        print(ERROR_MSG + "create mode unkown")
+        logger.error("create mode unkown")
         exit()
