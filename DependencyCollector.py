@@ -50,6 +50,7 @@ def parse_config_file(configfile, conftype):
 def update_mode(infile, conf):
     import glob
     import ntpath
+    import time
 
     logger.debug("running update mode")
     dir = os.path.dirname(os.path.realpath(infile))
@@ -58,12 +59,14 @@ def update_mode(infile, conf):
     logger.debug("dll found in directory:" + str(existing_dlls))
     for dll in existing_dlls:
         dll_name = ntpath.basename(dll)
-        logger.debug("searching for a newer version of " + dll)
+        logger.debug("searching for a newer version of " + dll + "("+time.ctime(os.path.getmtime(dll))+")")
         if dll_name.lower() not in conf['blacklist']:
             (newest_dll, mod_date) = search_for_newest_file(dll_name,
                                                             conf['paths'])
             if newest_dll != "" and mod_date > os.path.getmtime(dll):
                 copy_dll(newest_dll, dir)
+            else:
+                logger.debug("not copying dll because local file is newer")
         else:
             logger.debug(dll + " skipped because of blacklist")
     return
@@ -76,8 +79,9 @@ def create_mode(infile, conf):
     path = os.path.dirname(os.path.realpath(infile))
     infile_name = ntpath.basename(infile)
     dlls = search_for_used_dlls(infile_name, path, [], conf)
-
     logger.debug("all dlls found:" + str(dlls))
+
+
     return
 
 
@@ -140,10 +144,10 @@ def search_for_newest_file(file, paths):
         fullpath = os.path.join(p, file)
         if os.path.isfile(fullpath) and \
                 (mod_date == "" or
-                 os.path.getmtime(fullpath) > mod_date):
+                 os.path.getmtime(fullpath) < mod_date):
             mod_date = os.path.getmtime(fullpath)
             newest_file = fullpath
-            logger.debug("newer dll found in " + p + " for " + file +
+            logger.debug("newest dll found in " + p + " for " + file +
                          " (date:" + time.ctime(mod_date) + ")")
 
     if newest_file == "":
@@ -153,6 +157,7 @@ def search_for_newest_file(file, paths):
 
 if __name__ == "__main__":
     import argparse
+    import configparser
     import os
 
     parser = argparse.ArgumentParser(
@@ -195,6 +200,13 @@ if __name__ == "__main__":
 
     if conf['create'] is True:
         create_mode(args.infile, conf)
+        logger.debug("resetting create flag")
+        config = configparser.ConfigParser()
+        config.read(args.configfile)
+        config['DependencyCollector']['CREATE_' + args.configuration.upper()] = "False"
+        with open(args.configfile, 'w') as configfile:
+            config.write(configfile)
+
     elif conf['create'] is False:
         update_mode(args.infile, conf)
     else:
