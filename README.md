@@ -35,6 +35,7 @@ Copy DependencyCollector.py and config.ini into a directory and adapt the paths_
 
 ## Usage with CMake
 This script is also designed to be used in a cmake build environment. For a working example see [nomacs - ImageLounge](http://github.com/nomacs/nomacs)
+
 Copy DependencyCollector.py and DependencyCollector.config.cmake.in into your directory and in your cmake file use something like
 ```
 set(DC_SCRIPT ${CMAKE_CURRENT_SOURCE_DIR}/cmake/DependencyCollector.py)
