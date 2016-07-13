@@ -59,7 +59,8 @@ def update_mode(infile, conf):
     logger.debug("dll found in directory:" + str(existing_dlls))
     for dll in existing_dlls:
         dll_name = ntpath.basename(dll)
-        logger.debug("searching for a newer version of " + dll + "("+time.ctime(os.path.getmtime(dll))+")")
+        logger.debug("searching for a newer version of " + dll +
+                     "("+time.ctime(os.path.getmtime(dll))+")")
         if dll_name.lower() not in conf['blacklist']:
             (newest_dll, mod_date) = search_for_newest_file(dll_name,
                                                             conf['paths'])
@@ -81,15 +82,14 @@ def create_mode(infile, conf):
     dlls = search_for_used_dlls(infile_name, path, [], conf)
     logger.debug("all dlls found:" + str(dlls))
 
-
     return
 
 
 def search_for_used_dlls(infile, path, dll_list, conf):
     import re
     dll_regexp = re.compile(b'\.dll')
-    logger.debug("analyzing: "+os.path.join(path,infile))
-    ifile = open(os.path.join(path,infile), 'rb')
+    logger.debug("analyzing: "+os.path.join(path, infile))
+    ifile = open(os.path.join(path, infile), 'rb')
     for line in ifile:
         iterator = dll_regexp.finditer(line)
         for match in iterator:
@@ -144,7 +144,7 @@ def search_for_newest_file(file, paths):
         fullpath = os.path.join(p, file)
         if os.path.isfile(fullpath) and \
                 (mod_date == "" or
-                 os.path.getmtime(fullpath) < mod_date):
+                 os.path.getmtime(fullpath) > mod_date):
             mod_date = os.path.getmtime(fullpath)
             newest_file = fullpath
             logger.debug("newest dll found in " + p + " for " + file +
@@ -189,10 +189,12 @@ if __name__ == "__main__":
         logger.error("config file does not exist" + args.configfile)
         exit()
 
-    logger.info("called with file:" + args.infile + " and configuration " + args.configuration)
+    logger.info("called with file:" + args.infile + " and configuration " +
+                args.configuration)
     conf = parse_config_file(args.configfile, args.configuration)
     conf['localpath'] = os.path.dirname(os.path.realpath(args.infile))
-    conf['paths'].append(os.path.dirname(os.path.realpath(args.infile))) # adding local path
+    conf['paths'].append(os.path.dirname(
+                         os.path.realpath(args.infile)))  # adding local path
 
     logger.debug("running create mode:" + str(conf['create']))
     logger.debug("using paths:" + str(conf['paths']))
@@ -203,7 +205,8 @@ if __name__ == "__main__":
         logger.debug("resetting create flag")
         config = configparser.ConfigParser()
         config.read(args.configfile)
-        config['DependencyCollector']['CREATE_' + args.configuration.upper()] = "False"
+        config['DependencyCollector']['CREATE_' +
+                                      args.configuration.upper()] = "False"
         with open(args.configfile, 'w') as configfile:
             config.write(configfile)
 
