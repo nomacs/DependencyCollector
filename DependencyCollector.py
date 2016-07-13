@@ -198,10 +198,10 @@ if __name__ == "__main__":
                         help="""executable or dependency which dependencies
                         should be copied""",
                         required=True)
-    parser.add_argument('--configfile', default='', metavar="configfile",
+    parser.add_argument('--configfile', default='config.ini', metavar="configfile",
                         help="""configuration file of the
                         dependencycollector""", required=True)
-    parser.add_argument('--configuration', default='', metavar='configuration',
+    parser.add_argument('--configuration', default='Release', metavar='configuration',
                         help="""current build configuration
                         (Release|Debug|...)""", required=True)
     parser.add_argument('--debug', action="store_true",
