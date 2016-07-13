@@ -13,8 +13,8 @@ import logging
 __author__ = "Stefan Fiel, Markus Diem, Florian Kleber"
 __copyright__ = "Copyright 2016, nomacs - ImageLounge"
 __credits__ = ["Stefan Fiel", "Markus Diem", "Florian Kleber"]
-__license__ = "GPL"
-__version__ = "3.0"
+__license__ = "GPLv3"
+__version__ = "0.1"
 __maintainer__ = "Stefan Fiel"
 __email__ = "stefan@nomacs.org"
 __status__ = "Production"
