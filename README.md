@@ -1,13 +1,14 @@
 # DependencyCollector
 Searches the dependencies (dlls) needed for an executable or library and copies it to the correct directory. This is done recursively, so all dependencies of a library needed are also copied.
 
-Note: python needs to be installed and in the paths 
+Note: python needs to be installed and in the paths
 
 ## Usage
 ```
 DependencyCollector.py --infile [inputfile] --configfile [configfile] --configuration [configuration]
 ```
-additionally --debug can be specified for debug output
+additionally --debug can be specified for debug output or with --create the create mode can be forced
+
 * inputfile: specifies the input file which dependencies should be analyzed
 * configfile: specifies the configfile, for the content of the file see below (Default: config.ini)
 * configuration: specifies the configuration, this is needed for a cmake build environment (default: Release)
