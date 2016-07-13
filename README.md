@@ -1,6 +1,8 @@
 # DependencyCollector
 Searches the dependencies (dlls) needed for an executable or library and copies it to the correct directory. This is done recursively, so all dependencies of a library needed are also copied.
 
+Note: python needs to be installed and in the paths 
+
 ## Usage
 ```
 DependencyCollector.py --infile [inputfile] --configfile [configfile] --configuration [configuration]
