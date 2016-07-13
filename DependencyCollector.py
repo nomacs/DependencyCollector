@@ -1,12 +1,32 @@
-#!/usr/local/bin/python
+#!/usr/bin/env python
+"""Collects all libraries used by a given executable or library.
+
+This script searches for all libraries used by an executable or
+library, which is given to the script and copies the libraries
+found into the directory of the input file. The search paths are
+specified in a config file. Also different configuration have
+to be specified, so that this script works with a cmake build
+environment.
+"""
 import logging
+
+__author__ = "Stefan Fiel, Markus Diem, Florian Kleber"
+__copyright__ = "Copyright 2016, nomacs - ImageLounge"
+__credits__ = ["Stefan Fiel", "Markus Diem", "Florian Kleber"]
+__license__ = "GPL"
+__version__ = "3.0"
+__maintainer__ = "Stefan Fiel"
+__email__ = "stefan@nomacs.org"
+__status__ = "Production"
+
+
 OUTPUT_NAME = "DependencyCollector"
 
 logging.basicConfig(level=logging.INFO, format=OUTPUT_NAME +
                     ' %(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger()
 
-
+# parses the config file and stores the values into a dictionary
 def parse_config_file(configfile, conftype):
     import configparser
     config = configparser.ConfigParser()
@@ -46,7 +66,10 @@ def parse_config_file(configfile, conftype):
     conf = {'create': create, 'paths': paths, 'blacklist': blacklist_lower}
     return conf
 
-
+# the update_mode looks up all dll files in the directory of the input file
+# and checks if a newer version (according to modified date) of any  dll
+# can be found within the paths specified in the config file and copyies the
+# libaries into the directory of the input file
 def update_mode(infile, conf):
     import glob
     import ntpath
@@ -72,7 +95,10 @@ def update_mode(infile, conf):
             logger.debug(dll + " skipped because of blacklist")
     return
 
-
+# create_mode parses recursively the executable resp. library (and their
+# dependencies) for dependencies and searches them in the paths specified
+# in the config file and copies the newest version (according to modified
+# date) into the directory of the input file
 def create_mode(infile, conf):
     import ntpath
 
@@ -84,7 +110,8 @@ def create_mode(infile, conf):
 
     return
 
-
+# searches recursively all dependencies of the 'infile' and copies
+# them into 'path'
 def search_for_used_dlls(infile, path, dll_list, conf):
     import re
     dll_regexp = re.compile(b'\.dll')
@@ -122,6 +149,7 @@ def search_for_used_dlls(infile, path, dll_list, conf):
     return dll_list
 
 
+# copies the given file 'dllpath' to the 'targetpath'
 def copy_dll(dllpath, targetpath):
     import shutil
     logger.info("copying " + dllpath + " to " + targetpath)
@@ -135,6 +163,8 @@ def copy_dll(dllpath, targetpath):
     return
 
 
+# searches for the newest 'file' (according to modification date)
+# in the given 'paths'
 def search_for_newest_file(file, paths):
     import time
 
