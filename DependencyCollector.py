@@ -26,6 +26,7 @@ logging.basicConfig(level=logging.INFO, format=OUTPUT_NAME +
                     ' %(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger()
 
+
 # parses the config file and stores the values into a dictionary
 def parse_config_file(configfile, conftype):
     import configparser
@@ -66,6 +67,7 @@ def parse_config_file(configfile, conftype):
     conf = {'create': create, 'paths': paths, 'blacklist': blacklist_lower}
     return conf
 
+
 # the update_mode looks up all dll files in the directory of the input file
 # and checks if a newer version (according to modified date) of any  dll
 # can be found within the paths specified in the config file and copyies the
@@ -95,6 +97,7 @@ def update_mode(infile, conf):
             logger.debug(dll + " skipped because of blacklist")
     return
 
+
 # create_mode parses recursively the executable resp. library (and their
 # dependencies) for dependencies and searches them in the paths specified
 # in the config file and copies the newest version (according to modified
@@ -109,6 +112,7 @@ def create_mode(infile, conf):
     logger.debug("all dlls found:" + str(dlls))
 
     return
+
 
 # searches recursively all dependencies of the 'infile' and copies
 # them into 'path'
@@ -196,10 +200,12 @@ if __name__ == "__main__":
                         help="""executable or dependency which dependencies
                         should be copied""",
                         required=True)
-    parser.add_argument('--configfile', default='config.ini', metavar="configfile",
+    parser.add_argument('--configfile', default='config.ini',
+                        metavar="configfile",
                         help="""configuration file of the
                         dependencycollector""", required=True)
-    parser.add_argument('--configuration', default='Release', metavar='configuration',
+    parser.add_argument('--configuration', default='Release',
+                        metavar='configuration',
                         help="""current build configuration
                         (Release|Debug|...)""", required=True)
     parser.add_argument('--debug', action="store_true",
