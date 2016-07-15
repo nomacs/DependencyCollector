@@ -76,6 +76,7 @@ def update_mode(infile, conf):
     import glob
     import ntpath
     import time
+    import re
 
     logger.info("running update mode")
     dir = os.path.dirname(os.path.realpath(infile))
@@ -86,7 +87,10 @@ def update_mode(infile, conf):
         dll_name = ntpath.basename(dll)
         logger.debug("searching for a newer version of " + dll +
                      "("+time.ctime(os.path.getmtime(dll))+")")
-        if dll_name.lower() not in conf['blacklist']:
+
+        blacklist_match = re.findall(
+            r"(?=(" + '|'.join(conf['blacklist']) + r"))", dll_name.lower())
+        if not blacklist_match:
             (newest_dll, mod_date) = search_for_newest_file(dll_name,
                                                             conf['paths'])
             if newest_dll != "" and mod_date > os.path.getmtime(dll):
@@ -134,7 +138,9 @@ def search_for_used_dlls(infile, path, dll_list, conf):
 
             dllname = line[pos:match.end()].decode()
 
-            if not dllname.lower() in conf['blacklist'] \
+            blacklist_match = re.findall(
+                r"(?=(" + '|'.join(conf['blacklist']) + r"))", dllname.lower())
+            if not blacklist_match \
                     and not dllname.lower() in dll_list:
                 (dllpath, mod_date) = \
                     search_for_newest_file(dllname, conf['paths'])
