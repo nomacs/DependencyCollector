@@ -203,6 +203,9 @@ if __name__ == "__main__":
     import argparse
     import configparser
     import os
+    import time
+
+    start_time = time.time()
 
     parser = argparse.ArgumentParser(
        description='searches for dependencies of an executable or library and'
@@ -268,4 +271,4 @@ if __name__ == "__main__":
         logger.error("create mode unkown")
         exit()
 
-    logger.info("finished")
+    logger.info("finished in %s seconds" % round((time.time() - start_time), 2))
