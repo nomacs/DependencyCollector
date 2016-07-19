@@ -23,7 +23,9 @@ __status__ = "Production"
 OUTPUT_NAME = "DependencyCollector"
 
 logging.basicConfig(level=logging.INFO, format=OUTPUT_NAME +
-                    ' %(asctime)s - %(levelname)s - %(message)s')
+                    ' %(levelname)s %(message)s')
+# ' %(asctime)s - %(levelname)s - %(message)s')
+
 logger = logging.getLogger()
 
 
@@ -145,12 +147,11 @@ def search_for_used_dlls(infile, path, dll_list, conf):
             blacklist_match = re.match(
                 regexp, dllname.lower())
             if not blacklist_match \
-                    and not dllname.lower() in dll_list:
+               and not dllname.lower() in dll_list:
                 (dllpath, mod_date) = \
                     search_for_newest_file(dllname, conf['paths'])
                 if dllpath != "":
-                    if os.path.dirname(dllpath) != conf['localpath']:
-                        copy_dll(dllpath, path)
+                    copy_dll(dllpath, path)
                     dll_list.append(dllname.lower())
                     dll_list = \
                         search_for_used_dlls(dllname, path, dll_list, conf)
@@ -164,9 +165,10 @@ def search_for_used_dlls(infile, path, dll_list, conf):
 # copies the given file 'dllpath' to the 'targetpath'
 def copy_dll(dllpath, targetpath):
     import shutil
-    logger.info("copying " + dllpath + " to " + targetpath)
+
     try:
         shutil.copy(dllpath, targetpath)
+        logger.info(dllpath + " -> " + targetpath)
     except OSError as error:
         logger.error("unable to copy " + dllpath + " to " +
                      targetpath + "(" + str(error) + ")")
@@ -242,12 +244,13 @@ if __name__ == "__main__":
                 args.configuration)
     conf = parse_config_file(args.configfile, args.configuration)
     conf['localpath'] = os.path.dirname(os.path.realpath(args.infile))
-    conf['paths'].append(os.path.dirname(
-                         os.path.realpath(args.infile)))  # adding local path
 
     logger.debug("running create mode:" + str(conf['create']))
     logger.debug("using paths:" + str(conf['paths']))
     logger.debug("using blacklist:" + str(conf['blacklist']))
+
+    # add my name to blacklist - we don't need to copy it
+    conf['blacklist'].append(os.path.basename(args.infile).lower())
 
     if conf['create'] is True or args.create:
         create_mode(args.infile, conf)
