@@ -100,7 +100,8 @@ def update_mode(infile, conf):
                                                             conf['paths'])
 
             if newest_dll == "":
-                logger.info("no dll found in given directories for %s" % dllname)
+                logger.info("no dll found in given directories for %s"
+                            % dllname)
             elif mod_date > os.path.getmtime(dll):
                 copy_dll(newest_dll, dir)
             else:
@@ -172,7 +173,7 @@ def copy_dll(dllpath, targetpath):
     import shutil
 
     try:
-        shutil.copy(dllpath, targetpath)
+        shutil.copy2(dllpath, targetpath)
         logger.info(dllpath + " -> " + targetpath)
     except OSError as error:
         if ("are the same file" in str(error)):
@@ -276,4 +277,5 @@ if __name__ == "__main__":
         logger.error("create mode unkown")
         exit()
 
-    logger.info("finished in %s seconds" % round((time.time() - start_time), 2))
+    logger.info("finished in %s seconds" %
+                round((time.time() - start_time), 2))
